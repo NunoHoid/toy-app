@@ -19,33 +19,36 @@ var applets = []applet{
 	{name: "Metronome", content: metronome.GuiContent},
 	{name: "Morse translator", content: translator.GuiContent},
 	{name: "Tic-Tac-Toe", content: tictactoe.GuiContent},
+	{name: "Welcome", content: welcome.GuiContent},
 }
 
 var template = ""
+
+const offset = 5
 
 type applet struct {
 	name    string
 	content func() fyne.CanvasObject
 }
 
-func (_ applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
+func (a applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	maxSize := fyne.NewSize(0, 0)
 	for _, val := range applets {
 		minSize := val.content().MinSize()
 		maxSize.Width = max(maxSize.Width, minSize.Width)
 		maxSize.Height = max(maxSize.Height, minSize.Height)
 	}
-	return maxSize.AddWidthHeight(widget.NewLabel(template).MinSize().Width, 0)
+	return maxSize.AddWidthHeight(objects[0].MinSize().Width+objects[1].MinSize().Width+2*offset, 0)
 }
 
-func (_ applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
 	objects[0].Move(fyne.NewPos(0, 0))
-	objects[0].Resize(fyne.NewSize(objects[0].MinSize().Width+5, containerSize.Height))
+	objects[0].Resize(fyne.NewSize(objects[0].MinSize().Width+offset, containerSize.Height))
 
 	objects[1].Move(fyne.NewPos(objects[0].Size().Width, 0))
 	objects[1].Resize(fyne.NewSize(objects[1].MinSize().Width, containerSize.Height))
 
-	objects[2].Move(fyne.NewPos(objects[0].Size().Width+objects[1].Size().Width+5, 0))
+	objects[2].Move(fyne.NewPos(objects[1].Position().X+objects[1].Size().Width+offset, 0))
 	objects[2].Resize(fyne.NewSize(containerSize.Width-objects[2].Position().X, containerSize.Height))
 }
 
@@ -62,7 +65,7 @@ func main() {
 
 	list := widget.NewList(
 		func() int {
-			return len(applets)
+			return len(applets) - 1
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel(template)

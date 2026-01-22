@@ -62,12 +62,12 @@ var markers = [][2]string{
 	{"\"", ".-..-."},
 	{"#", "#"},
 	{"$", "#"},
-	{"%", "----- -..-. -----"},
+	{"%", "#"},
 	{"&", ".-..."},
 	{"'", ".----."},
 	{"(", "-.--."},
 	{")", "-.--.-"},
-	{"*", "-..-"},
+	{"*", "#"},
 	{"+", ".-.-."},
 	{",", "--..--"},
 	{"-", "-....-"},
@@ -84,42 +84,41 @@ var markers = [][2]string{
 
 type applet struct{}
 
-func (_ applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
+func (a applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	return fyne.NewSize(600, 400)
 }
 
 func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
-	buttonHeight := float32(40)
-	buttonOffset := float32(20)
+	const offset = 20
 
-	entrySize := fyne.NewSize(containerSize.Width, containerSize.Height/2-buttonHeight/2-buttonOffset)
+	entrySize := fyne.NewSize(containerSize.Width, containerSize.Height/2-2*offset)
 
 	objects[0].Move(fyne.NewPos(0, 0))
 	objects[0].Resize(entrySize)
 
-	objects[1].Move(fyne.NewPos(0, entrySize.Height+buttonHeight+2*buttonOffset))
+	objects[1].Move(fyne.NewPos(0, containerSize.Height-entrySize.Height))
 	objects[1].Resize(entrySize)
 
-	start := (containerSize.Width-a.MinSize(nil).Width)/2 + buttonOffset
-	end := start + a.MinSize(nil).Width - 2*buttonOffset
+	start := (containerSize.Width-a.MinSize(nil).Width)/2 + offset
+	end := start + a.MinSize(nil).Width - 2*offset
 
-	objects[2].Move(fyne.NewPos(start, entrySize.Height+buttonOffset))
-	objects[2].Resize(fyne.NewSize(objects[2].MinSize().Width, buttonHeight))
+	objects[2].Move(fyne.NewPos(start, entrySize.Height+offset))
+	objects[2].Resize(fyne.NewSize(objects[2].MinSize().Width, 2*offset))
 
-	objects[3].Move(objects[2].Position().AddXY(objects[2].Size().Width+buttonOffset, 0))
-	objects[3].Resize(fyne.NewSquareSize(buttonHeight))
+	objects[3].Move(objects[2].Position().AddXY(objects[2].Size().Width+offset, 0))
+	objects[3].Resize(fyne.NewSquareSize(2 * offset))
 
-	objects[4].Move(objects[3].Position().AddXY(buttonHeight+buttonOffset, 0))
-	objects[4].Resize(fyne.NewSquareSize(buttonHeight))
+	objects[4].Move(objects[3].Position().AddXY(objects[3].Size().Width+offset, 0))
+	objects[4].Resize(fyne.NewSquareSize(2 * offset))
 
-	objects[5].Move(objects[4].Position().AddXY(buttonHeight+buttonOffset, 0))
-	objects[5].Resize(fyne.NewSize(objects[5].MinSize().Width, buttonHeight))
+	objects[5].Move(objects[4].Position().AddXY(objects[4].Size().Width+offset, 0))
+	objects[5].Resize(fyne.NewSize(objects[5].MinSize().Width, 2*offset))
 
-	objects[6].Move(objects[5].Position().AddXY(objects[5].Size().Width+buttonOffset, 0))
-	objects[6].Resize(fyne.NewSize(objects[6].MinSize().Width, buttonHeight))
+	objects[6].Move(objects[5].Position().AddXY(objects[5].Size().Width+offset, 0))
+	objects[6].Resize(fyne.NewSize(objects[6].MinSize().Width, 2*offset))
 
 	objects[7].Move(objects[6].Position().AddXY(objects[6].Size().Width, 0))
-	objects[7].Resize(fyne.NewSize(end-objects[7].Position().X, buttonHeight))
+	objects[7].Resize(fyne.NewSize(end-objects[7].Position().X, 2*offset))
 }
 
 func encodeChar(char rune) string {
