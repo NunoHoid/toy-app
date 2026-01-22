@@ -89,34 +89,37 @@ func (_ applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
 }
 
 func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
-	mediaHeight := float32(40)
-	mediaOffset := float32(20)
+	buttonHeight := float32(40)
+	buttonOffset := float32(20)
 
-	entrySize := fyne.NewSize(containerSize.Width, containerSize.Height/2-mediaHeight/2-mediaOffset)
+	entrySize := fyne.NewSize(containerSize.Width, containerSize.Height/2-buttonHeight/2-buttonOffset)
 
 	objects[0].Move(fyne.NewPos(0, 0))
 	objects[0].Resize(entrySize)
 
-	objects[1].Move(fyne.NewPos(0, entrySize.Height+mediaHeight+2*mediaOffset))
+	objects[1].Move(fyne.NewPos(0, entrySize.Height+buttonHeight+2*buttonOffset))
 	objects[1].Resize(entrySize)
 
-	start := (containerSize.Width-a.MinSize(nil).Width)/2 + mediaOffset
-	end := start + a.MinSize(nil).Width - 2*mediaOffset
+	start := (containerSize.Width-a.MinSize(nil).Width)/2 + buttonOffset
+	end := start + a.MinSize(nil).Width - 2*buttonOffset
 
-	objects[2].Move(fyne.NewPos(start, entrySize.Height+mediaOffset))
-	objects[2].Resize(fyne.NewSquareSize(mediaHeight))
+	objects[2].Move(fyne.NewPos(start, entrySize.Height+buttonOffset))
+	objects[2].Resize(fyne.NewSize(objects[2].MinSize().Width, buttonHeight))
 
-	objects[3].Move(objects[2].Position().AddXY(mediaHeight+mediaOffset, 0))
-	objects[3].Resize(fyne.NewSquareSize(mediaHeight))
+	objects[3].Move(objects[2].Position().AddXY(objects[2].Size().Width+buttonOffset, 0))
+	objects[3].Resize(fyne.NewSquareSize(buttonHeight))
 
-	objects[4].Move(objects[3].Position().AddXY(mediaHeight+mediaOffset, 0))
-	objects[4].Resize(fyne.NewSize(objects[4].MinSize().Width, mediaHeight))
+	objects[4].Move(objects[3].Position().AddXY(buttonHeight+buttonOffset, 0))
+	objects[4].Resize(fyne.NewSquareSize(buttonHeight))
 
-	objects[5].Move(objects[4].Position().AddXY(objects[4].Size().Width+mediaOffset, 0))
-	objects[5].Resize(fyne.NewSize(objects[5].MinSize().Width, mediaHeight))
+	objects[5].Move(objects[4].Position().AddXY(buttonHeight+buttonOffset, 0))
+	objects[5].Resize(fyne.NewSize(objects[5].MinSize().Width, buttonHeight))
 
-	objects[6].Move(objects[5].Position().AddXY(objects[5].Size().Width, 0))
-	objects[6].Resize(fyne.NewSize(end-objects[6].Position().X, mediaHeight))
+	objects[6].Move(objects[5].Position().AddXY(objects[5].Size().Width+buttonOffset, 0))
+	objects[6].Resize(fyne.NewSize(objects[6].MinSize().Width, buttonHeight))
+
+	objects[7].Move(objects[6].Position().AddXY(objects[6].Size().Width, 0))
+	objects[7].Resize(fyne.NewSize(end-objects[7].Position().X, buttonHeight))
 }
 
 func encodeChar(char rune) string {
@@ -149,6 +152,26 @@ func decodeChar(char string) rune {
 		return rune(markers[idx][0][0])
 	}
 	return '#'
+}
+
+func clearLatin(text string) string {
+	builder := strings.Builder{}
+	lastIsSpace := false
+
+	for word := range strings.FieldsSeq(text) {
+		if builder.Len() > 0 && !lastIsSpace {
+			builder.WriteRune(' ')
+			lastIsSpace = true
+		}
+		for _, char := range word {
+			if encodeChar(char) != "#" {
+				builder.WriteRune(char)
+				lastIsSpace = false
+			}
+		}
+	}
+
+	return builder.String()
 }
 
 func latinToMorse(text string) string {
@@ -261,13 +284,17 @@ func GuiContent() fyne.CanvasObject {
 		}
 	}
 
-	speedLabel := widget.NewLabel("Playback speed:")
+	speedLabel := widget.NewLabel("Speed:")
 
-	speedSlider := widget.NewSlider(1, 9)
-	speedSlider.SetValue(5)
+	speedSlider := widget.NewSlider(3, 9)
+	speedSlider.SetValue(6)
 
 	presetSelect := widget.NewSelect([]string{"Glockenspiel", "Vibraphone"}, nil)
 	presetSelect.SetSelected(presetSelect.Options[0])
+
+	clearButton := widget.NewButton("Clear", func() {
+		latinEntry.SetText(clearLatin(latinEntry.Text))
+	})
 
 	playButton := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
 		speaker.Clear()
@@ -279,9 +306,10 @@ func GuiContent() fyne.CanvasObject {
 	})
 
 	return container.New(
-		&applet{},
+		applet{},
 		latinEntry,
 		morseEntry,
+		clearButton,
 		playButton,
 		stopButton,
 		presetSelect,

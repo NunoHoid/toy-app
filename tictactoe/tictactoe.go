@@ -13,5 +13,5 @@ type tile struct {
 }
 
 func GuiContent() fyne.CanvasObject {
-	return widget.NewLabel("To be implemented!!!")
+	return widget.NewLabel("To be implemented!")
 }

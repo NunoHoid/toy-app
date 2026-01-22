@@ -1,4 +1,4 @@
-package metronome
+package welcome
 
 import (
 	"fyne.io/fyne/v2"
@@ -6,5 +6,5 @@ import (
 )
 
 func GuiContent() fyne.CanvasObject {
-	return widget.NewLabel("To be implemented!")
+	return widget.NewLabel("Welcome!")
 }

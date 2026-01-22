@@ -1,26 +1,41 @@
 package main
 
 import (
+	"runtime"
 	"toy-app/dragonball"
 	"toy-app/metronome"
 	"toy-app/tictactoe"
 	"toy-app/translator"
+	"toy-app/welcome"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/gopxl/beep/v2/speaker"
 )
 
-var minSize = fyne.NewSize(0, 0)
+var applets = []applet{
+	{name: "Metronome", content: metronome.GuiContent},
+	{name: "Morse translator", content: translator.GuiContent},
+	{name: "Tic-Tac-Toe", content: tictactoe.GuiContent},
+}
+
+var template = ""
 
 type applet struct {
 	name    string
-	content fyne.CanvasObject
+	content func() fyne.CanvasObject
 }
 
 func (_ applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	return minSize
+	maxSize := fyne.NewSize(0, 0)
+	for _, val := range applets {
+		minSize := val.content().MinSize()
+		maxSize.Width = max(maxSize.Width, minSize.Width)
+		maxSize.Height = max(maxSize.Height, minSize.Height)
+	}
+	return maxSize.AddWidthHeight(widget.NewLabel(template).MinSize().Width, 0)
 }
 
 func (_ applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
@@ -38,20 +53,11 @@ func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Toy App")
 
-	applets := []applet{
-		{name: "Metronome", content: metronome.GuiContent()},
-		{name: "Tic-Tac-Toe", content: tictactoe.GuiContent()},
-		{name: "Translator", content: translator.GuiContent()},
-	}
-
-	template := ""
 	for idx, val := 0, float32(0); idx < len(applets); idx += 1 {
 		if width := widget.NewLabel(applets[idx].name).MinSize().Width; width > val {
 			template = applets[idx].name
 			val = width
 		}
-		minSize.Width = max(minSize.Width, applets[idx].content.MinSize().Width)
-		minSize.Height = max(minSize.Height, applets[idx].content.MinSize().Height)
 	}
 
 	list := widget.NewList(
@@ -66,19 +72,13 @@ func main() {
 		},
 	)
 
-	minSize.Width += list.MinSize().Width
-
 	list.OnSelected = func(id widget.ListItemID) {
-		myWindow.SetContent(container.New(
-			applet{},
-			list,
-			widget.NewSeparator(),
-			applets[id].content,
-		))
+		speaker.Clear()
+		myWindow.SetContent(container.New(applet{}, list, widget.NewSeparator(), applets[id].content()))
+		runtime.GC()
 	}
 
-	list.Select(2)
-
+	myWindow.SetContent(container.New(applet{}, list, widget.NewSeparator(), welcome.GuiContent()))
 	dragonball.SpeakerInit()
 	myWindow.ShowAndRun()
 }
