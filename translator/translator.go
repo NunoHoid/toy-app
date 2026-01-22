@@ -8,6 +8,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/gopxl/beep/v2/midi"
 	"github.com/gopxl/beep/v2/speaker"
@@ -233,29 +234,27 @@ func GuiContent() fyne.CanvasObject {
 	presetSelect := widget.NewSelect([]string{"Glockenspiel", "Vibraphone"}, nil)
 	presetSelect.SetSelected(presetSelect.Options[0])
 
-	playButton := widget.NewButton("Play", func() {
+	playButton := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
 		speaker.Clear()
 		morseToMidi(morseEntry.Text, safetySelect.Selected, byte(speedSlider.Value), presetSelect.Selected[0]-'G'+2)
 	})
 
-	stopButton := widget.NewButton("Stop", func() {
+	stopButton := widget.NewButtonWithIcon("", theme.MediaStopIcon(), func() {
 		speaker.Clear()
 	})
 
 	return container.NewGridWithRows(3,
 		latinEntry,
-		container.NewCenter(
-			container.NewGridWithRows(2,
-				container.NewGridWithColumns(3,
-					playButton,
-					safetySelect,
-					presetSelect,
-				),
-				container.NewGridWithColumns(3,
-					stopButton,
-					widget.NewLabel("Playback speed:"),
-					speedSlider,
-				),
+		container.NewGridWithRows(2,
+			container.NewGridWithColumns(3,
+				playButton,
+				safetySelect,
+				presetSelect,
+			),
+			container.NewGridWithColumns(3,
+				stopButton,
+				widget.NewLabel("Speed:"),
+				speedSlider,
 			),
 		),
 		morseEntry,

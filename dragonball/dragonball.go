@@ -9,6 +9,11 @@ import (
 	"github.com/gopxl/beep/v2/speaker"
 )
 
+//go:embed dragonball.sf2
+var dragonball []byte
+
+const SampleRate = 48000
+
 type file struct {
 	content []byte
 }
@@ -25,11 +30,6 @@ func (f *file) Read(slice []byte) (int, error) {
 func (f *file) Close() error {
 	return nil
 }
-
-//go:embed dragonball.sf2
-var dragonball []byte
-
-const SampleRate = 48000
 
 func NewFile(content []byte) *file {
 	return &file{content}
