@@ -25,20 +25,13 @@ func (_ applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
 
 func (_ applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
 	objects[0].Move(fyne.NewPos(0, 0))
-	objects[0].Resize(fyne.NewSize(
-		objects[0].MinSize().Width+5,
-		containerSize.Height,
-	))
+	objects[0].Resize(fyne.NewSize(objects[0].MinSize().Width+5, containerSize.Height))
+
 	objects[1].Move(fyne.NewPos(objects[0].Size().Width, 0))
-	objects[1].Resize(fyne.NewSize(
-		objects[1].MinSize().Width,
-		containerSize.Height,
-	))
+	objects[1].Resize(fyne.NewSize(objects[1].MinSize().Width, containerSize.Height))
+
 	objects[2].Move(fyne.NewPos(objects[0].Size().Width+objects[1].Size().Width+5, 0))
-	objects[2].Resize(fyne.NewSize(
-		containerSize.Width-objects[2].Position().X,
-		containerSize.Height,
-	))
+	objects[2].Resize(fyne.NewSize(containerSize.Width-objects[2].Position().X, containerSize.Height))
 }
 
 func main() {
@@ -68,18 +61,23 @@ func main() {
 		func() fyne.CanvasObject {
 			return widget.NewLabel(template)
 		},
-		func(id widget.ListItemID, obj fyne.CanvasObject) {
-			obj.(*widget.Label).SetText(applets[id].name)
+		func(id widget.ListItemID, object fyne.CanvasObject) {
+			object.(*widget.Label).SetText(applets[id].name)
 		},
 	)
 
 	minSize.Width += list.MinSize().Width
 
 	list.OnSelected = func(id widget.ListItemID) {
-		myWindow.SetContent(container.New(applet{}, list, widget.NewSeparator(), applets[id].content))
+		myWindow.SetContent(container.New(
+			applet{},
+			list,
+			widget.NewSeparator(),
+			applets[id].content,
+		))
 	}
 
-	list.Select(0)
+	list.Select(2)
 
 	dragonball.SpeakerInit()
 	myWindow.ShowAndRun()

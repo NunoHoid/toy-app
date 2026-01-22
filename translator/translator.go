@@ -2,6 +2,7 @@ package translator
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"toy-app/dragonball"
@@ -57,18 +58,65 @@ var numbers = [][2]string{
 }
 
 var markers = [][2]string{
+	{"!", "-.-.--"},
+	{"\"", ".-..-."},
+	{"#", "#"},
+	{"$", "#"},
+	{"%", "----- -..-. -----"},
 	{"&", ".-..."},
 	{"'", ".----."},
-	{"@", ".--.-."},
-	{")", "-.--.-"},
 	{"(", "-.--."},
-	{":", "---..."},
+	{")", "-.--.-"},
+	{"*", "-..-"},
+	{"+", ".-.-."},
 	{",", "--..--"},
-	{".", ".-.-.-"},
 	{"-", "-....-"},
-	{"\"", ".-..-."},
-	{"?", "..--.."},
+	{".", ".-.-.-"},
 	{"/", "-..-."},
+	{":", "---..."},
+	{";", "#"},
+	{"<", "#"},
+	{"=", "-...-"},
+	{">", "#"},
+	{"?", "..--.."},
+	{"@", ".--.-."},
+}
+
+type applet struct{}
+
+func (_ applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	return fyne.NewSize(600, 400)
+}
+
+func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	mediaHeight := float32(40)
+	mediaOffset := float32(20)
+
+	entrySize := fyne.NewSize(containerSize.Width, containerSize.Height/2-mediaHeight/2-mediaOffset)
+
+	objects[0].Move(fyne.NewPos(0, 0))
+	objects[0].Resize(entrySize)
+
+	objects[1].Move(fyne.NewPos(0, entrySize.Height+mediaHeight+2*mediaOffset))
+	objects[1].Resize(entrySize)
+
+	start := (containerSize.Width-a.MinSize(nil).Width)/2 + mediaOffset
+	end := start + a.MinSize(nil).Width - 2*mediaOffset
+
+	objects[2].Move(fyne.NewPos(start, entrySize.Height+mediaOffset))
+	objects[2].Resize(fyne.NewSquareSize(mediaHeight))
+
+	objects[3].Move(objects[2].Position().AddXY(mediaHeight+mediaOffset, 0))
+	objects[3].Resize(fyne.NewSquareSize(mediaHeight))
+
+	objects[4].Move(objects[3].Position().AddXY(mediaHeight+mediaOffset, 0))
+	objects[4].Resize(fyne.NewSize(objects[4].MinSize().Width, mediaHeight))
+
+	objects[5].Move(objects[4].Position().AddXY(objects[4].Size().Width+mediaOffset, 0))
+	objects[5].Resize(fyne.NewSize(objects[5].MinSize().Width, mediaHeight))
+
+	objects[6].Move(objects[5].Position().AddXY(objects[5].Size().Width, 0))
+	objects[6].Resize(fyne.NewSize(end-objects[6].Position().X, mediaHeight))
 }
 
 func encodeChar(char rune) string {
@@ -81,29 +129,24 @@ func encodeChar(char rune) string {
 	if '0' <= char && char <= '9' {
 		return numbers[char-'0'][1]
 	}
-	for _, val := range markers {
-		if char == rune(val[0][0]) {
-			return val[1]
-		}
+	if '!' <= char && char <= '/' {
+		return markers[char-'!'][1]
+	}
+	if ':' <= char && char <= '@' {
+		return markers[char-':'][1]
 	}
 	return "#"
 }
 
 func decodeChar(char string) rune {
-	for _, val := range letters {
-		if char == val[1] {
-			return rune(val[0][0])
-		}
+	if idx := slices.IndexFunc(letters, func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
+		return rune(letters[idx][0][0])
 	}
-	for _, val := range numbers {
-		if char == val[1] {
-			return rune(val[0][0])
-		}
+	if idx := slices.IndexFunc(numbers, func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
+		return rune(numbers[idx][0][0])
 	}
-	for _, val := range markers {
-		if char == val[1] {
-			return rune(val[0][0])
-		}
+	if idx := slices.IndexFunc(markers, func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
+		return rune(markers[idx][0][0])
 	}
 	return '#'
 }
@@ -144,14 +187,7 @@ func morseToLatin(text string) string {
 	return builder.String()
 }
 
-func morseToMidi(text string, safety string, speed byte, preset byte) {
-	if safety == "Safe" {
-		text = latinToMorse(strings.ReplaceAll(morseToLatin(text), "#", ""))
-	}
-	if text == "" {
-		return
-	}
-
+func morseToMidi(text string, speed byte, preset byte) {
 	content := []byte{
 		0x4d, 0x54, 0x68, 0x64,
 		0x00, 0x00, 0x00, 0x06,
@@ -225,10 +261,9 @@ func GuiContent() fyne.CanvasObject {
 		}
 	}
 
-	safetySelect := widget.NewSelect([]string{"Safe", "Unsafe"}, nil)
-	safetySelect.SetSelected(safetySelect.Options[0])
+	speedLabel := widget.NewLabel("Playback speed:")
 
-	speedSlider := widget.NewSlider(3, 7)
+	speedSlider := widget.NewSlider(1, 9)
 	speedSlider.SetValue(5)
 
 	presetSelect := widget.NewSelect([]string{"Glockenspiel", "Vibraphone"}, nil)
@@ -236,27 +271,21 @@ func GuiContent() fyne.CanvasObject {
 
 	playButton := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
 		speaker.Clear()
-		morseToMidi(morseEntry.Text, safetySelect.Selected, byte(speedSlider.Value), presetSelect.Selected[0]-'G'+2)
+		morseToMidi(morseEntry.Text, byte(speedSlider.Value), presetSelect.Selected[0]-'G'+2)
 	})
 
 	stopButton := widget.NewButtonWithIcon("", theme.MediaStopIcon(), func() {
 		speaker.Clear()
 	})
 
-	return container.NewGridWithRows(3,
+	return container.New(
+		&applet{},
 		latinEntry,
-		container.NewGridWithRows(2,
-			container.NewGridWithColumns(3,
-				playButton,
-				safetySelect,
-				presetSelect,
-			),
-			container.NewGridWithColumns(3,
-				stopButton,
-				widget.NewLabel("Speed:"),
-				speedSlider,
-			),
-		),
 		morseEntry,
+		playButton,
+		stopButton,
+		presetSelect,
+		speedLabel,
+		speedSlider,
 	)
 }
