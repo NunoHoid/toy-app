@@ -16,13 +16,11 @@ import (
 )
 
 var applets = []applet{
-	{name: "Metronome", content: metronome.GuiContent},
-	{name: "Morse translator", content: translator.GuiContent},
-	{name: "Tic-Tac-Toe", content: tictactoe.GuiContent},
-	{name: "Welcome", content: welcome.GuiContent},
+	{name: "Metronome", content: metronome.Content},
+	{name: "Morse translator", content: translator.Content},
+	{name: "Tic-Tac-Toe", content: tictactoe.Content},
+	{name: "Welcome", content: welcome.Content},
 }
-
-var template = ""
 
 const offset = 5
 
@@ -32,13 +30,12 @@ type applet struct {
 }
 
 func (a applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	maxSize := fyne.NewSize(0, 0)
+	minSize := objects[0].MinSize().Add(objects[1].MinSize()).AddWidthHeight(0, 2*offset)
+	maxSize := fyne.NewSquareSize(0)
 	for _, val := range applets {
-		minSize := val.content().MinSize()
-		maxSize.Width = max(maxSize.Width, minSize.Width)
-		maxSize.Height = max(maxSize.Height, minSize.Height)
+		maxSize = maxSize.Max(val.content().MinSize())
 	}
-	return maxSize.AddWidthHeight(objects[0].MinSize().Width+objects[1].MinSize().Width+2*offset, 0)
+	return minSize.Add(maxSize)
 }
 
 func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
@@ -56,6 +53,7 @@ func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Toy App")
 
+	template := ""
 	for idx, val := 0, float32(0); idx < len(applets); idx += 1 {
 		if width := widget.NewLabel(applets[idx].name).MinSize().Width; width > val {
 			template = applets[idx].name
@@ -76,12 +74,15 @@ func main() {
 	)
 
 	list.OnSelected = func(id widget.ListItemID) {
-		speaker.Clear()
 		myWindow.SetContent(container.New(applet{}, list, widget.NewSeparator(), applets[id].content()))
+	}
+
+	list.OnUnselected = func(id widget.ListItemID) {
+		speaker.Clear()
 		runtime.GC()
 	}
 
-	myWindow.SetContent(container.New(applet{}, list, widget.NewSeparator(), welcome.GuiContent()))
+	myWindow.SetContent(container.New(applet{}, list, widget.NewSeparator(), welcome.Content()))
 	dragonball.SpeakerInit()
 	myWindow.ShowAndRun()
 }

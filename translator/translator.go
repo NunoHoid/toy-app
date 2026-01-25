@@ -99,10 +99,10 @@ func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
 	objects[1].Move(fyne.NewPos(0, containerSize.Height-entrySize.Height))
 	objects[1].Resize(entrySize)
 
-	start := (containerSize.Width-a.MinSize(nil).Width)/2 + offset
-	end := start + a.MinSize(nil).Width - 2*offset
-
-	objects[2].Move(fyne.NewPos(start, entrySize.Height+offset))
+	objects[2].Move(fyne.NewPos(
+		(containerSize.Width-a.MinSize(nil).Width)/2+offset,
+		entrySize.Height+offset,
+	))
 	objects[2].Resize(fyne.NewSize(objects[2].MinSize().Width, 2*offset))
 
 	objects[3].Move(objects[2].Position().AddXY(objects[2].Size().Width+offset, 0))
@@ -118,7 +118,10 @@ func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
 	objects[6].Resize(fyne.NewSize(objects[6].MinSize().Width, 2*offset))
 
 	objects[7].Move(objects[6].Position().AddXY(objects[6].Size().Width, 0))
-	objects[7].Resize(fyne.NewSize(end-objects[7].Position().X, 2*offset))
+	objects[7].Resize(fyne.NewSize(
+		(containerSize.Width+a.MinSize(nil).Width)/2-objects[7].Position().X-offset,
+		2*offset,
+	))
 }
 
 func encodeChar(char rune) string {
@@ -213,11 +216,11 @@ func morseToMidi(text string, speed byte, preset byte) {
 	content := []byte{
 		0x4d, 0x54, 0x68, 0x64,
 		0x00, 0x00, 0x00, 0x06,
-		0x00, 0x00,
+		0x00, 0x01,
 		0x00, 0x01,
 		0x00, speed,
 		0x4d, 0x54, 0x72, 0x6b,
-		0x00, 0x00, 0x00, 0x04,
+		0x00, 0x00, 0x00, 0x1a,
 		0x00, 0xb0, 0x07, 0xff,
 		0x00, 0xc0, preset,
 	}
@@ -226,24 +229,23 @@ func morseToMidi(text string, speed byte, preset byte) {
 		switch char {
 		case '.':
 			content = append(content,
-				0x01, 0x90, 0x45, 0x40,
-				0x01, 0x80, 0x45, 0x40,
+				0x01, 0x90, 0x45, 0x50,
+				0x01, 0x80, 0x45, 0x50,
 			)
 		case '-':
 			content = append(content,
-				0x01, 0x90, 0x45, 0x40,
-				0x03, 0x80, 0x45, 0x40,
+				0x01, 0x90, 0x45, 0x50,
+				0x03, 0x80, 0x45, 0x50,
 			)
 		default:
 			content = append(content,
-				0x02, 0x80, 0x45, 0x40,
+				0x02, 0x80, 0x45, 0x50,
 			)
 		}
 	}
 
 	content = append(content,
-		0x07, 0x80, 0x45, 0x40,
-		0x00, 0xff, 0x2f, 0x00,
+		0x02, 0xff, 0x2f, 0x00,
 	)
 
 	lenght := fmt.Sprintf("%08x", len(content)-22)
@@ -256,7 +258,7 @@ func morseToMidi(text string, speed byte, preset byte) {
 	speaker.Play(stream)
 }
 
-func GuiContent() fyne.CanvasObject {
+func Content() fyne.CanvasObject {
 	latinEntry := widget.NewMultiLineEntry()
 	latinEntry.SetPlaceHolder("Enter text...")
 	latinEntry.Wrapping = fyne.TextWrapWord
@@ -283,13 +285,12 @@ func GuiContent() fyne.CanvasObject {
 		}
 	}
 
-	speedLabel := widget.NewLabel("Speed:")
-
-	speedSlider := widget.NewSlider(3, 9)
-	speedSlider.SetValue(6)
-
 	presetSelect := widget.NewSelect([]string{"Glockenspiel", "Vibraphone"}, nil)
 	presetSelect.SetSelected(presetSelect.Options[0])
+
+	speedLabel := widget.NewLabel("Speed:")
+	speedSlider := widget.NewSlider(3, 9)
+	speedSlider.SetValue(6)
 
 	clearButton := widget.NewButton("Clear", func() {
 		latinEntry.SetText(clearLatin(latinEntry.Text))
