@@ -16,24 +16,32 @@ import (
 type applet struct{}
 
 func (a applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	return fyne.NewSize(500, 150)
+	return fyne.NewSize(500, 200)
 }
 
 func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	const offset = 20
+
 	objects[0].Move(fyne.NewPos(
 		(containerSize.Width-a.MinSize(nil).Width)/2,
 		(containerSize.Height-a.MinSize(nil).Height)/2,
 	))
-	objects[0].Resize(fyne.NewSize(a.MinSize(nil).Height/2, a.MinSize(nil).Height))
+	objects[0].Resize(a.MinSize(nil))
 
-	objects[1].Move(objects[0].Position().AddXY(objects[0].Size().Width, 0))
-	objects[2].Resize(fyne.NewSize(objects[2].MinSize().Width, a.MinSize(nil).Height))
+	objects[1].Move(fyne.NewPos(objects[0].Position().X+offset, containerSize.Height/2-3*offset))
+	objects[1].Resize(fyne.NewSquareSize(2 * offset))
 
-	objects[1].Resize(fyne.NewSize(
-		a.MinSize(nil).Width-objects[0].Size().Width-objects[2].Size().Width,
-		a.MinSize(nil).Height,
+	objects[2].Move(objects[1].Position().AddXY(0, 4*offset))
+	objects[2].Resize(fyne.NewSquareSize(2 * offset))
+
+	objects[3].Move(objects[0].Position().AddXY(4*offset, offset))
+	objects[4].Resize(objects[4].MinSize())
+
+	objects[3].Resize(a.MinSize(nil).SubtractWidthHeight(objects[4].Size().Width+6*offset, 2*offset))
+	objects[4].Move(fyne.NewPos(
+		objects[3].Position().X+objects[3].Size().Width+offset,
+		(containerSize.Height-objects[4].Size().Height)/2,
 	))
-	objects[2].Move(objects[1].Position().AddXY(objects[1].Size().Width, 0))
 }
 
 func playOneHour(beatsPerMinute int, beatsPerBar int) {
@@ -76,29 +84,26 @@ func Content() fyne.CanvasObject {
 	beatsSelect := widget.NewSelect([]string{"2", "3", "4", "6"}, nil)
 	beatsSelect.SetSelected("4")
 
-	speedCard := widget.NewCard("", "Beats per minute", widget.NewSlider(60, 300))
+	borderCard := widget.NewCard("", "", nil)
+
+	speedCard := widget.NewCard("", "", widget.NewSlider(60, 300))
 	speedCard.Content.(*widget.Slider).OnChanged = func(f float64) {
 		speedCard.SetTitle(fmt.Sprint(f))
 	}
 	speedCard.Content.(*widget.Slider).SetValue(120)
 	speedCard.Content.(*widget.Slider).Step = 5
 
-	beatsCard := widget.NewCard("", "Beats per measure", widget.NewRadioGroup([]string{"2", "3", "4"}, nil))
-	beatsCard.Content.(*widget.RadioGroup).SetSelected("4")
+	beatsRadio := widget.NewRadioGroup([]string{"2", "3", "4"}, nil)
+	beatsRadio.SetSelected("4")
 
 	playButton := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
 		speaker.Clear()
-		playOneHour(
-			int(speedCard.Content.(*widget.Slider).Value),
-			int(beatsCard.Content.(*widget.RadioGroup).Selected[0]-'0'),
-		)
+		playOneHour(int(speedCard.Content.(*widget.Slider).Value), int(beatsRadio.Selected[0]-'0'))
 	})
 
 	stopButton := widget.NewButtonWithIcon("", theme.MediaStopIcon(), func() {
 		speaker.Clear()
 	})
 
-	mediaCard := widget.NewCard("", "", container.NewGridWithRows(2, playButton, stopButton))
-
-	return container.New(applet{}, mediaCard, speedCard, beatsCard)
+	return container.New(applet{}, borderCard, playButton, stopButton, speedCard, beatsRadio)
 }
