@@ -15,49 +15,68 @@ import (
 	"github.com/gopxl/beep/v2/speaker"
 )
 
-var applets = []applet{
-	{name: "Metronome", content: metronome.Content},
-	{name: "Morse translator", content: translator.Content},
-	{name: "Tic-Tac-Toe", content: tictactoe.Content},
-	{name: "Welcome", content: welcome.Content},
-}
-
-const offset = 5
+const padding = 5
 
 type applet struct {
 	name    string
-	content func() fyne.CanvasObject
+	content func(fyne.Size) fyne.CanvasObject
+	minSize fyne.Size
 }
 
-func (a applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	minSize := objects[0].MinSize().Add(objects[1].MinSize()).AddWidthHeight(0, 2*offset)
-	maxSize := fyne.NewSquareSize(0)
-	for _, val := range applets {
-		maxSize = maxSize.Max(val.content().MinSize())
-	}
-	return minSize.Add(maxSize)
+type layout struct {
+	minSize fyne.Size
 }
 
-func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
-	objects[0].Move(fyne.NewPos(0, 0))
-	objects[0].Resize(fyne.NewSize(objects[0].MinSize().Width+offset, containerSize.Height))
+func (l *layout) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	return l.minSize
+}
 
-	objects[1].Move(fyne.NewPos(objects[0].Size().Width, 0))
-	objects[1].Resize(fyne.NewSize(objects[1].MinSize().Width, containerSize.Height))
+func (l *layout) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	objects[0].Move(fyne.Position{
+		X: 0,
+		Y: 0,
+	})
+	objects[0].Resize(fyne.Size{
+		Width:  objects[0].MinSize().Width + padding,
+		Height: containerSize.Height,
+	})
 
-	objects[2].Move(fyne.NewPos(objects[1].Position().X+objects[1].Size().Width+offset, 0))
-	objects[2].Resize(fyne.NewSize(containerSize.Width-objects[2].Position().X, containerSize.Height))
+	objects[1].Move(fyne.Position{
+		X: objects[0].Position().X + objects[0].Size().Width,
+		Y: 0,
+	})
+	objects[1].Resize(fyne.Size{
+		Width:  objects[1].MinSize().Width,
+		Height: containerSize.Height,
+	})
+
+	objects[2].Move(fyne.Position{
+		X: objects[1].Position().X + objects[1].Size().Width + padding,
+		Y: 0,
+	})
+	objects[2].Resize(fyne.Size{
+		Width:  containerSize.Width - objects[2].Position().X,
+		Height: containerSize.Height,
+	})
 }
 
 func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Toy App")
 
+	var applets = []applet{
+		{name: "Metronome", content: metronome.Content},
+		{name: "Morse translator", content: translator.Content},
+		{name: "Tic-Tac-Toe", content: tictactoe.Content},
+		{name: "Welcome", content: welcome.Content},
+	}
+
 	template := ""
-	for idx, val := 0, float32(0); idx < len(applets); idx += 1 {
-		if width := widget.NewLabel(applets[idx].name).MinSize().Width; width > val {
+	for idx, label, maxWidth := 0, widget.NewLabel(""), float32(0); idx < len(applets); idx += 1 {
+		label.SetText(applets[idx].name)
+		if width := label.MinSize().Width; width > maxWidth {
 			template = applets[idx].name
-			val = width
+			maxWidth = width
 		}
 	}
 
@@ -73,8 +92,22 @@ func main() {
 		},
 	)
 
+	separator := widget.NewSeparator()
+
+	maxSize := fyne.Size{}
+	for idx := range applets {
+		applets[idx].minSize = applets[idx].content(fyne.Size{}).MinSize()
+		maxSize.Width = max(maxSize.Width, applets[idx].minSize.Width)
+		maxSize.Height = max(maxSize.Height, applets[idx].minSize.Height)
+	}
+
+	maxSize.Width = list.MinSize().Width + separator.MinSize().Width + maxSize.Width + 2*padding
+	maxSize.Height = max(list.MinSize().Height, maxSize.Height)
+
 	list.OnSelected = func(id widget.ListItemID) {
-		myWindow.SetContent(container.New(applet{}, list, widget.NewSeparator(), applets[id].content()))
+		myWindow.SetContent(
+			container.New(&layout{maxSize}, list, separator, applets[id].content(applets[id].minSize)),
+		)
 	}
 
 	list.OnUnselected = func(id widget.ListItemID) {
@@ -82,7 +115,10 @@ func main() {
 		runtime.GC()
 	}
 
-	myWindow.SetContent(container.New(applet{}, list, widget.NewSeparator(), welcome.Content()))
+	myWindow.SetContent(
+		container.New(&layout{maxSize}, list, separator, welcome.Content(applets[len(applets)-1].minSize)),
+	)
+	// myWindow.SetContent(applets[0].content(applets[0].minSize))
 	dragonball.SpeakerInit()
 	myWindow.ShowAndRun()
 }

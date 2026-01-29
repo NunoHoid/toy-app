@@ -15,143 +15,216 @@ import (
 	"github.com/gopxl/beep/v2/speaker"
 )
 
-var letters = [][2]string{
-	{"a", ".-"},
-	{"b", "-..."},
-	{"c", "-.-."},
-	{"d", "-.."},
-	{"e", "."},
-	{"f", "..-."},
-	{"g", "--."},
-	{"h", "...."},
-	{"i", ".."},
-	{"j", ".---"},
-	{"k", "-.-"},
-	{"l", ".-.."},
-	{"m", "--"},
-	{"n", "-."},
-	{"o", "---"},
-	{"p", ".--."},
-	{"q", "--.-"},
-	{"r", ".-."},
-	{"s", "..."},
-	{"t", "-"},
-	{"u", "..-"},
-	{"v", "...-"},
-	{"w", ".--"},
-	{"x", "-..-"},
-	{"y", "-.--"},
-	{"z", "--.."},
+const padding = 20
+
+type layout struct {
+	minSize fyne.Size
 }
 
-var numbers = [][2]string{
-	{"0", "-----"},
-	{"1", ".----"},
-	{"2", "..---"},
-	{"3", "...--"},
-	{"4", "....-"},
-	{"5", "....."},
-	{"6", "-...."},
-	{"7", "--..."},
-	{"8", "---.."},
-	{"9", "----."},
+func (l *layout) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	if !l.minSize.IsZero() {
+		return l.minSize
+	}
+
+	centerHeight := float32(0)
+	for _, val := range objects {
+		centerHeight = max(centerHeight, val.MinSize().Height)
+	}
+
+	centerWidth := objects[2].MinSize().Width + objects[5].MinSize().Width + objects[6].MinSize().Width
+	centerWidth += 3*centerHeight + 6*padding
+
+	return fyne.Size{
+		Width:  max(centerWidth, objects[0].MinSize().Width),
+		Height: 3*centerHeight + 2*padding,
+	}
 }
 
-var markers = [][2]string{
-	{"!", "-.-.--"},
-	{"\"", ".-..-."},
-	{"#", "#"},
-	{"$", "#"},
-	{"%", "#"},
-	{"&", ".-..."},
-	{"'", ".----."},
-	{"(", "-.--."},
-	{")", "-.--.-"},
-	{"*", "#"},
-	{"+", ".-.-."},
-	{",", "--..--"},
-	{"-", "-....-"},
-	{".", ".-.-.-"},
-	{"/", "-..-."},
-	{":", "---..."},
-	{";", "#"},
-	{"<", "#"},
-	{"=", "-...-"},
-	{">", "#"},
-	{"?", "..--.."},
-	{"@", ".--.-."},
+func (l *layout) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	centerSize := fyne.Size{
+		Width:  l.minSize.Width - 2*padding,
+		Height: (l.minSize.Height-2*padding)/3 - 2*padding,
+	}
+
+	entrySize := fyne.Size{
+		Width:  containerSize.Width,
+		Height: (containerSize.Height-centerSize.Height)/2 - padding,
+	}
+
+	objects[0].Move(fyne.Position{
+		X: 0,
+		Y: 0,
+	})
+	objects[0].Resize(fyne.Size{
+		Width:  entrySize.Width,
+		Height: entrySize.Height,
+	})
+
+	objects[1].Move(fyne.Position{
+		X: 0,
+		Y: containerSize.Height - entrySize.Height,
+	})
+	objects[1].Resize(fyne.Size{
+		Width:  entrySize.Width,
+		Height: entrySize.Height,
+	})
+
+	objects[2].Move(fyne.Position{
+		X: (containerSize.Width - centerSize.Width) / 2,
+		Y: entrySize.Height + padding,
+	})
+	objects[2].Resize(fyne.Size{
+		Width:  objects[2].MinSize().Width,
+		Height: centerSize.Height,
+	})
+
+	objects[3].Move(fyne.Position{
+		X: objects[2].Position().X + objects[2].Size().Width + padding,
+		Y: objects[2].Position().Y,
+	})
+	objects[3].Resize(fyne.Size{
+		Width:  centerSize.Height,
+		Height: centerSize.Height,
+	})
+
+	objects[4].Move(fyne.Position{
+		X: objects[3].Position().X + objects[3].Size().Width + padding,
+		Y: objects[3].Position().Y,
+	})
+	objects[4].Resize(fyne.Size{
+		Width:  centerSize.Height,
+		Height: centerSize.Height,
+	})
+
+	objects[5].Move(fyne.Position{
+		X: objects[4].Position().X + objects[4].Size().Width + padding,
+		Y: objects[4].Position().Y,
+	})
+	objects[5].Resize(fyne.Size{
+		Width:  objects[5].MinSize().Width,
+		Height: centerSize.Height,
+	})
+
+	objects[6].Move(fyne.Position{
+		X: objects[5].Position().X + objects[5].Size().Width + padding,
+		Y: objects[5].Position().Y,
+	})
+	objects[6].Resize(fyne.Size{
+		Width:  objects[6].MinSize().Width,
+		Height: centerSize.Height,
+	})
+
+	objects[7].Move(fyne.Position{
+		X: objects[6].Position().X + objects[6].Size().Width,
+		Y: objects[6].Position().Y,
+	})
+	objects[7].Resize(fyne.Size{
+		Width:  (containerSize.Width+centerSize.Width)/2 - objects[7].Position().X,
+		Height: centerSize.Height,
+	})
 }
 
-type applet struct{}
-
-func (a applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	return fyne.NewSize(600, 400)
+func letters() [][2]string {
+	return [][2]string{
+		{"a", ".-"},
+		{"b", "-..."},
+		{"c", "-.-."},
+		{"d", "-.."},
+		{"e", "."},
+		{"f", "..-."},
+		{"g", "--."},
+		{"h", "...."},
+		{"i", ".."},
+		{"j", ".---"},
+		{"k", "-.-"},
+		{"l", ".-.."},
+		{"m", "--"},
+		{"n", "-."},
+		{"o", "---"},
+		{"p", ".--."},
+		{"q", "--.-"},
+		{"r", ".-."},
+		{"s", "..."},
+		{"t", "-"},
+		{"u", "..-"},
+		{"v", "...-"},
+		{"w", ".--"},
+		{"x", "-..-"},
+		{"y", "-.--"},
+		{"z", "--.."},
+	}
 }
 
-func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
-	const offset = 20
+func numbers() [][2]string {
+	return [][2]string{
+		{"0", "-----"},
+		{"1", ".----"},
+		{"2", "..---"},
+		{"3", "...--"},
+		{"4", "....-"},
+		{"5", "....."},
+		{"6", "-...."},
+		{"7", "--..."},
+		{"8", "---.."},
+		{"9", "----."},
+	}
+}
 
-	entrySize := fyne.NewSize(containerSize.Width, containerSize.Height/2-2*offset)
-
-	objects[0].Move(fyne.NewPos(0, 0))
-	objects[0].Resize(entrySize)
-
-	objects[1].Move(fyne.NewPos(0, containerSize.Height-entrySize.Height))
-	objects[1].Resize(entrySize)
-
-	objects[2].Move(fyne.NewPos(
-		(containerSize.Width-a.MinSize(nil).Width)/2+offset,
-		entrySize.Height+offset,
-	))
-	objects[2].Resize(fyne.NewSize(objects[2].MinSize().Width, 2*offset))
-
-	objects[3].Move(objects[2].Position().AddXY(objects[2].Size().Width+offset, 0))
-	objects[3].Resize(fyne.NewSquareSize(2 * offset))
-
-	objects[4].Move(objects[3].Position().AddXY(objects[3].Size().Width+offset, 0))
-	objects[4].Resize(fyne.NewSquareSize(2 * offset))
-
-	objects[5].Move(objects[4].Position().AddXY(objects[4].Size().Width+offset, 0))
-	objects[5].Resize(fyne.NewSize(objects[5].MinSize().Width, 2*offset))
-
-	objects[6].Move(objects[5].Position().AddXY(objects[5].Size().Width+offset, 0))
-	objects[6].Resize(fyne.NewSize(objects[6].MinSize().Width, 2*offset))
-
-	objects[7].Move(objects[6].Position().AddXY(objects[6].Size().Width, 0))
-	objects[7].Resize(fyne.NewSize(
-		(containerSize.Width+a.MinSize(nil).Width)/2-objects[7].Position().X-offset,
-		2*offset,
-	))
+func markers() [][2]string {
+	return [][2]string{
+		{"!", "-.-.--"},
+		{"\"", ".-..-."},
+		{"#", "#"},
+		{"$", "#"},
+		{"%", "#"},
+		{"&", ".-..."},
+		{"'", ".----."},
+		{"(", "-.--."},
+		{")", "-.--.-"},
+		{"*", "#"},
+		{"+", ".-.-."},
+		{",", "--..--"},
+		{"-", "-....-"},
+		{".", ".-.-.-"},
+		{"/", "-..-."},
+		{":", "---..."},
+		{";", "#"},
+		{"<", "#"},
+		{"=", "-...-"},
+		{">", "#"},
+		{"?", "..--.."},
+		{"@", ".--.-."},
+	}
 }
 
 func encodeChar(char rune) string {
 	if 'A' <= char && char <= 'Z' {
-		return letters[char-'A'][1]
+		return letters()[char-'A'][1]
 	}
 	if 'a' <= char && char <= 'z' {
-		return letters[char-'a'][1]
+		return letters()[char-'a'][1]
 	}
 	if '0' <= char && char <= '9' {
-		return numbers[char-'0'][1]
+		return numbers()[char-'0'][1]
 	}
 	if '!' <= char && char <= '/' {
-		return markers[char-'!'][1]
+		return markers()[char-'!'][1]
 	}
 	if ':' <= char && char <= '@' {
-		return markers[char-':'][1]
+		return markers()[char-':'][1]
 	}
 	return "#"
 }
 
 func decodeChar(char string) rune {
-	if idx := slices.IndexFunc(letters, func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
-		return rune(letters[idx][0][0])
+	if idx := slices.IndexFunc(letters(), func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
+		return rune(letters()[idx][0][0])
 	}
-	if idx := slices.IndexFunc(numbers, func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
-		return rune(numbers[idx][0][0])
+	if idx := slices.IndexFunc(numbers(), func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
+		return rune(numbers()[idx][0][0])
 	}
-	if idx := slices.IndexFunc(markers, func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
-		return rune(markers[idx][0][0])
+	if idx := slices.IndexFunc(markers(), func(pair [2]string) bool { return char == pair[1] }); idx != -1 {
+		return rune(markers()[idx][0][0])
 	}
 	return '#'
 }
@@ -258,7 +331,7 @@ func morseToMidi(text string, speed byte, preset byte) {
 	speaker.Play(stream)
 }
 
-func Content() fyne.CanvasObject {
+func Content(minSize fyne.Size) fyne.CanvasObject {
 	latinEntry := widget.NewMultiLineEntry()
 	latinEntry.SetPlaceHolder("Enter text...")
 	latinEntry.Wrapping = fyne.TextWrapWord
@@ -306,7 +379,7 @@ func Content() fyne.CanvasObject {
 	})
 
 	return container.New(
-		applet{},
+		&layout{minSize},
 		latinEntry,
 		morseEntry,
 		clearButton,

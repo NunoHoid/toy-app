@@ -13,35 +13,59 @@ import (
 	"github.com/gopxl/beep/v2/speaker"
 )
 
-type applet struct{}
+const padding = 5
 
-func (a applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	return fyne.NewSize(500, 200)
+type layout struct {
+	minSize fyne.Size
 }
 
-func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
-	const offset = 20
+func (l *layout) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	if !l.minSize.IsZero() {
+		return l.minSize
+	}
 
-	objects[0].Move(fyne.NewPos(
-		(containerSize.Width-a.MinSize(nil).Width)/2,
-		(containerSize.Height-a.MinSize(nil).Height)/2,
-	))
-	objects[0].Resize(a.MinSize(nil))
+	return fyne.Size{
+		Width:  2 * objects[1].MinSize().Width,
+		Height: objects[0].MinSize().Height + objects[1].MinSize().Height + padding,
+	}
+}
 
-	objects[1].Move(fyne.NewPos(objects[0].Position().X+offset, containerSize.Height/2-3*offset))
-	objects[1].Resize(fyne.NewSquareSize(2 * offset))
+func (l *layout) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	objects[0].Move(fyne.Position{
+		X: (containerSize.Width - l.minSize.Width) / 2,
+		Y: (containerSize.Height - l.minSize.Height) / 2,
+	})
+	objects[0].Resize(fyne.Size{
+		Width:  l.minSize.Width,
+		Height: objects[0].MinSize().Height,
+	})
 
-	objects[2].Move(objects[1].Position().AddXY(0, 4*offset))
-	objects[2].Resize(fyne.NewSquareSize(2 * offset))
+	objects[1].Move(fyne.Position{
+		X: objects[0].Position().X,
+		Y: objects[0].Position().Y + objects[0].Size().Height + padding,
+	})
+	objects[1].Resize(fyne.Size{
+		Width:  objects[1].MinSize().Width,
+		Height: objects[1].MinSize().Height,
+	})
 
-	objects[3].Move(objects[0].Position().AddXY(4*offset, offset))
-	objects[4].Resize(objects[4].MinSize())
+	objects[2].Move(fyne.Position{
+		X: objects[1].Position().X + 6*objects[1].Size().Width/5,
+		Y: objects[1].Position().Y + (objects[1].Size().Height-objects[1].Size().Width/5)/2,
+	})
+	objects[2].Resize(fyne.Size{
+		Width:  objects[1].Size().Width / 5,
+		Height: objects[1].Size().Width / 5,
+	})
 
-	objects[3].Resize(a.MinSize(nil).SubtractWidthHeight(objects[4].Size().Width+6*offset, 2*offset))
-	objects[4].Move(fyne.NewPos(
-		objects[3].Position().X+objects[3].Size().Width+offset,
-		(containerSize.Height-objects[4].Size().Height)/2,
-	))
+	objects[3].Move(fyne.Position{
+		X: objects[2].Position().X + 2*objects[1].Size().Width/5,
+		Y: objects[2].Position().Y,
+	})
+	objects[3].Resize(fyne.Size{
+		Width:  objects[1].Size().Width / 5,
+		Height: objects[1].Size().Width / 5,
+	})
 }
 
 func playOneHour(beatsPerMinute int, beatsPerBar int) {
@@ -80,30 +104,29 @@ func playOneHour(beatsPerMinute int, beatsPerBar int) {
 	speaker.Play(stream)
 }
 
-func Content() fyne.CanvasObject {
-	beatsSelect := widget.NewSelect([]string{"2", "3", "4", "6"}, nil)
-	beatsSelect.SetSelected("4")
-
-	borderCard := widget.NewCard("", "", nil)
-
-	speedCard := widget.NewCard("", "", widget.NewSlider(60, 300))
+func Content(minSize fyne.Size) fyne.CanvasObject {
+	speedCard := widget.NewCard("", "Beats per minute", widget.NewSlider(60, 300))
 	speedCard.Content.(*widget.Slider).OnChanged = func(f float64) {
 		speedCard.SetTitle(fmt.Sprint(f))
 	}
 	speedCard.Content.(*widget.Slider).SetValue(120)
 	speedCard.Content.(*widget.Slider).Step = 5
 
-	beatsRadio := widget.NewRadioGroup([]string{"2", "3", "4"}, nil)
-	beatsRadio.SetSelected("4")
+	beatsCard := widget.NewCard("", "Beats per measure", widget.NewRadioGroup([]string{"2", "3", "4"}, nil))
+	beatsCard.Content.(*widget.RadioGroup).SetSelected("4")
+	beatsCard.Content.(*widget.RadioGroup).Horizontal = true
 
 	playButton := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
 		speaker.Clear()
-		playOneHour(int(speedCard.Content.(*widget.Slider).Value), int(beatsRadio.Selected[0]-'0'))
+		playOneHour(
+			int(speedCard.Content.(*widget.Slider).Value),
+			int(beatsCard.Content.(*widget.RadioGroup).Selected[0]-'0'),
+		)
 	})
 
 	stopButton := widget.NewButtonWithIcon("", theme.MediaStopIcon(), func() {
 		speaker.Clear()
 	})
 
-	return container.New(applet{}, borderCard, playButton, stopButton, speedCard, beatsRadio)
+	return container.New(&layout{minSize}, speedCard, beatsCard, playButton, stopButton)
 }

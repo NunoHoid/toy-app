@@ -14,26 +14,38 @@ import (
 //go:embed mascot.png
 var mascot []byte
 
-type applet struct{}
-
-func (a applet) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	return fyne.NewSize(
-		max(objects[0].MinSize().Width, float32(objects[0].(*widget.Card).Content.(*canvas.Image).Image.Bounds().Max.X)),
-		objects[0].MinSize().Height+float32(objects[0].(*widget.Card).Content.(*canvas.Image).Image.Bounds().Max.Y),
-	)
+type layout struct {
+	minSize fyne.Size
 }
 
-func (a applet) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
-	objects[0].Move(fyne.NewPos(
-		(containerSize.Width-a.MinSize(objects).Width)/2,
-		(containerSize.Height-a.MinSize(objects).Height)/2,
-	))
-	objects[0].Resize(a.MinSize(objects))
+func (l *layout) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	if !l.minSize.IsZero() {
+		return l.minSize
+	}
+
+	image := objects[0].(*widget.Card).Content.(*canvas.Image).Image
+
+	return fyne.Size{
+		Width:  max(objects[0].MinSize().Width, float32(image.Bounds().Max.X)),
+		Height: objects[0].MinSize().Height + float32(image.Bounds().Max.Y),
+	}
 }
 
-func Content() fyne.CanvasObject {
+func (l *layout) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	objects[0].Move(fyne.Position{
+		X: (containerSize.Width - l.minSize.Width) / 2,
+		Y: (containerSize.Height - l.minSize.Height) / 2,
+	})
+	objects[0].Resize(fyne.Size{
+		Width:  l.minSize.Width,
+		Height: l.minSize.Height,
+	})
+}
+
+func Content(minSize fyne.Size) fyne.CanvasObject {
 	image, _ := png.Decode(dragonball.NewFile(mascot))
 	card := widget.NewCard("Welcome", "A toy app to explore the fyne framework", canvas.NewImageFromImage(image))
 	card.Content.(*canvas.Image).FillMode = canvas.ImageFillContain
-	return container.New(applet{}, card)
+
+	return container.New(&layout{minSize}, card)
 }
